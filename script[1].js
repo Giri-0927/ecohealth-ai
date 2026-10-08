@@ -1,0 +1,13 @@
+const $=x=>document.getElementById(x);
+function clamp(x){return Math.max(0,Math.min(100,x))}
+function calc(){let a=+$("aqi").value||0,p=+$("pm").value||0,t=+$("temp").value||0,h=+$("hum").value||0,e=+$("exposure").value,s=+$("sensitivity").value;
+let ar=clamp((a-20)/2.2),pr=clamp((p-8)*1.35),hr=clamp(Math.abs(t-24)*3),hu=h>55?clamp((h-55)*1.7):clamp((40-h)*1.2);let score=Math.round(clamp((ar*.34+pr*.25+hr*.12+hu*.12+8)*e*s));return{score,a,p,t,h,e,s,ar,pr,hr,hu}}
+function render(){let r=calc(),level=r.score<35?"LOW":r.score<65?"MODERATE":"HIGH";$("score").textContent=r.score;$("heroScore").textContent=r.score;$("heroRisk").textContent=level;$("badge").textContent=level;$("message").textContent=level[0]+level.slice(1).toLowerCase()+" environmental risk";
+$("desc").textContent=level==="HIGH"?"Exposure is elevated for this profile. Reduce unnecessary outdoor exposure and monitor conditions.":level==="MODERATE"?"The environment suggests moderate exposure-related risk for this profile.":"Current conditions appear relatively favorable for this profile.";
+[["f1","p1",r.ar],["f2","p2",r.pr],["f3","p3",r.hu],["f4","p4",(r.s-0.7)*100]].forEach(x=>{$(x[0]).style.width=clamp(x[2])+"%";$(x[1]).textContent=Math.round(clamp(x[2]))+"%"});
+$("rec").textContent=r.a>=100||r.p>=55?"Reduce prolonged outdoor exposure while pollution is elevated.":r.t>=34?"Hydrate well and avoid intense activity during the hottest hours.":"Conditions are relatively favorable; check the forecast again before long outdoor exposure.";
+$("actions").innerHTML=["Check AQI before prolonged outdoor activity.","Use the forecast to plan lower-exposure periods.","Keep hydration and ventilation in mind during warm or humid conditions."].map(x=>"<li>✓ "+x+"</li>").join("");
+$("aqiStat").textContent=r.a+" AQI";$("tempStat").textContent=r.t+"°C";$("humStat").textContent=r.h+"%";draw(r.score)}
+function draw(score){let c=$("chart"),x=c.getContext("2d"),w=c.width=c.clientWidth*2,h=c.height=280*2;x.scale(2,2);w/=2;h/=2;x.clearRect(0,0,w,h);let v=[-8,3,-4,8,1,12,-2].map(n=>clamp(score+n));x.strokeStyle="#079b83";x.lineWidth=4;x.beginPath();v.forEach((n,i)=>{let px=20+i*(w-40)/6,py=h-25-n*(h-50)/100;i?x.lineTo(px,py):x.moveTo(px,py)});x.stroke();v.forEach((n,i)=>{let px=20+i*(w-40)/6,py=h-25-n*(h-50)/100;x.fillStyle="#fff";x.strokeStyle="#079b83";x.beginPath();x.arc(px,py,5,0,7);x.fill();x.stroke()})}
+$("form").addEventListener("submit",e=>{e.preventDefault();render();location.hash="forecast"});
+$("save").onclick=()=>{localStorage.setItem("ecohealth",JSON.stringify(calc()));$("save").textContent="✓ Forecast saved"};$("theme").onclick=()=>document.body.classList.toggle("dark");window.addEventListener("resize",()=>draw(calc().score));render();
